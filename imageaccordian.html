@@ -1,0 +1,57 @@
+<div data-sly-test.author="${wcmmode.edit || wcmmode.design}">Configure accordian in EDIT Mode</div>
+<sly data-sly-use.hashmap="com.abbott.smartpack.core.models.AccordianImageModel"/>
+    <div data-sly-attribute.class ="${(wcmmode.edit || wcmmode.design) ? '' : 'swipe-tab-content'}">
+	<!-- Collapse Content -->
+	<section class="collapser" id="main-content" >
+		<div class="container">
+			<div class="row">
+				<div class="col-md-12">
+					<sly data-sly-list.head="${hashmap.accordians.listChildren}">
+						<div class="panel-group" id="accordion" role="tablist" aria-multiselectable="true">
+							<div class="panel panel-default">
+								<div class="panel-heading" role="tab" id="heading-${headList.index}">
+									<h4 class="panel-title">
+										<a class="collapsed" role="button" id="show-l" data-toggle="collapse" data-parent="#accordion" href="#collapse-${headList.index}" aria-expanded="false" aria-controls="collapse-${headList.index}">
+											<h4 class="faq_heading noMargin">${head.accordiantitle}</h4>
+										</a>
+									</h4>
+								</div>
+								<div id="collapse-${headList.index}" class="panel-collapse collapse" role="tabpanel" aria-labelledby="headingOne-${headList.index}">
+									<div class="panel-body">
+										<!-- Content -->
+										<p>${head.accordiantext ? head.accordiantext : head.accordiansubtext }</p>
+  										<!-- Read More -->
+										<a class="btn-read-more text-right" id="more${headList.index}" href="javascript:show(${headList.index})">Read More</a>
+										<br />
+										<a class="btn-read-more text-right" id="less${headList.index}" style="display:none;" href="javascript:less(${headList.index})">Read Less</a>
+										<br />
+										<!-- Slider -->
+										<div id="slid${headList.index}" class="slid-text" style="display:none;">
+											<div class="slider" id="slider-section">
+											 <sly data-sly-list.image="${head.listChildren}">
+
+                                        	<sly data-sly-test=${imageList.first}>
+											<sly data-sly-list.images="${image.listChildren}">
+
+												<div class="slide"><img src="${images.imagepath}" alt="" class="img-responsive" /></div>
+                                            </sly>
+                                            </sly>
+                                            </sly>
+
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+					</sly>
+				</div>
+			</div>
+		</section>
+		<!-- End Collapse Content -->
+	</div>
+    </div>
+   
+
+
+

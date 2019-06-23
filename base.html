@@ -1,0 +1,39 @@
+<sly data-sly-use.clientLib="/libs/granite/sightly/templates/clientlib.html" data-sly-call="${clientLib.all @ categories='smartpack.all'}" data-sly-unwrap/>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <meta http-equiv="x-ua-compatible" content="IE=edge">
+    <title>Abbott - Dablexa</title>
+	 <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/slick-carousel@1.8.1/slick/slick.css" />
+    <!-- Bootstrap core CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+            <!-- Fontswesome CSS -->
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.8.1/css/all.css" integrity="sha384-50oBUHEmvpQ+1lW4y57PTFmhCaXp0ML5d60M1M7uH2+nqUivzIebhndOJK28anvf" crossorigin="anonymous">
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="//code.jquery.com/jquery-migrate-1.2.1.min.js"></script>
+
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/slick-carousel@1.8.1/slick/slick.min.js"></script>
+
+
+
+</head>
+
+<sly data-sly-include="/libs/wcm/core/components/init/init.jsp" data-sly-unwrap/>
+
+<sly data-sly-include=”/libs/foundation/global.jsp” data-sly-unwrap/>
+<body>
+<!--header-->
+  <div data-sly-resource="${ 'header' @ resourceType='wcm/foundation/components/iparsys'}"></div>
+
+
+  <div data-sly-resource="${ 'par' @ resourceType='wcm/foundation/components/parsys'}"></div>
+
+<!--footer-->
+  <div data-sly-resource="${ 'footer' @ resourceType='wcm/foundation/components/iparsys'}"></div>
+
+</body>
+</html>

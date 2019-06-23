@@ -1,0 +1,67 @@
+<sly data-sly-use.multiItems="com.abbott.smartpack.core.models.FooterModel"/>
+
+    <section class="footer">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-12">
+                    <img class="img-footer-logo" src="/content/dam/smartpack/images/abbott-logo-white.png" />
+                </div>
+
+                <div class="col-xl-6 col-lg-6 col-ms-6 col-sm-6">
+
+                    <ul class="footer-links-first-row">
+					<sly data-sly-list.head="${multiItems.footerlinks.listChildren}">
+
+					<li data-sly-test="${headList.count <= 6}">
+                         <a class="footer-links" href="${head.link}">
+                               ${head.label}
+                            </a>
+                        </li>
+
+					</sly>
+                    </ul>
+					
+                </div>
+				<div class="col-xl-6 col-lg-6 col-ms-6 col-sm-6">
+
+                    <ul class="footer-links-first-row">
+					<sly data-sly-list.head="${multiItems.footerlinks.listChildren}">
+
+					<li data-sly-test="${headList.count > 6}">
+                         <a class="footer-links" href="${head.link}">
+                               ${head.label}
+                            </a>
+                        </li>
+
+					</sly>
+                    </ul>
+
+                </div>
+                <div class="col-lg-12">
+				<p class="text-white">${properties.rights}</p>
+				</br>
+				<p class="text-white">${properties.license}</p>
+                </div>
+            </div>
+        </div>
+    </section>
+    <script type="text/javascript">
+function resize() {
+    var scr_heights = $(window).height();
+    // var slider_heights = (83 / 100) * scr_heights;
+    var slider_heights = (23 / 100) * scr_heights;
+    var nav_heights = (13 / 100) * scr_heights;
+    document.getElementById("header-secton").style.minHeight = slider_heights + "px";
+    // document.getElementById("navigation-section").style.minHeight = nav_heights + "px";
+    // document.getElementById("main-content").style.minHeight = scr_heights + "px";
+
+}
+
+resize();
+window.onresize = function () {
+    resize();
+};	
+</script>
+
+	
+
