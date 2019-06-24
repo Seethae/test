@@ -1,0 +1,44 @@
+/*Header Content*/
+/*section#header-secton {
+    -webkit-background-size: cover;
+    -moz-background-size: cover;
+    background-size: cover;
+    -o-background-size: cover;
+    min-height: 667px;
+}*/
+.row.head-banner div {
+    width: 50%;
+}
+h1.mt-5 {
+    text-transform: uppercase;
+    color: #004f70;
+    padding-top: 0px;
+    font-size: 1em;
+    text-align: right;
+}
+.mt-5, .my-5 {
+    margin-top: 1rem!important;
+}
+a.nav-custom-link {
+    text-decoration: underline;
+}
+
+.header-logo {
+    height: auto;
+    width: 100px;
+}
+
+
+@media only screen and (max-width: 600px) {
+/*.row.head-banner div {
+    width: 100% !important;
+}*/
+h1.mt-5 {
+     text-transform: uppercase ;
+    color: #004f70 ;
+    padding-top: 25px ;
+    font-size: 1em ;
+    text-align: right ;
+}
+} 
+/*End Header Content*/
