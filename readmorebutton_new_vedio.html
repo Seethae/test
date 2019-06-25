@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <title>Abbott - Dablexa</title>
+    <link rel="stylesheet" type="text/css" href="css/slick.css" />
+    <link rel="stylesheet" type="text/css" href="css/slick-theme.css">
+    <!-- Add the new slick-theme.css if you want the default styling-->
+    <!-- Bootstrap core CSS -->
+    <link rel="stylesheet" href="css/bootstrap.min.css">
+            <!-- Fontswesome CSS -->
+    <link rel="stylesheet" href="css/all.css" integrity="sha384-50oBUHEmvpQ+1lW4y57PTFmhCaXp0ML5d60M1M7uH2+nqUivzIebhndOJK28anvf" crossorigin="anonymous">
+    <!-- Custom styles for this template -->
+    <link href="css/style_new.css" rel="stylesheet">
+</head>
+<body>
+    <!-- Page Content -->
+    <!-- Navigation -->
+<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Praesent nisl lorem, dictum id pellentesque at, vestibulum ut arcu. <span id="slid2" style="display:none;">Curabitur erat libero, egestas eu tincidunt ac, rutrum ac justo.</span> </p>
+                                    <a class="btn-read-more text-right" id="more2" href="javascript:show(2)">Read More >></a>
+                                    <a class="btn-read-more text-right" id="less2" style="display:none;" href="javascript:less(2)">Read Less <<</a><br />
+                                    <!-- Slider -->
+                                    <div  class="slid-text" >
+                                    <div class="slider" id="slider-section">
+                                        <div class="slide">
+                                            <img src="images/slide-1.jpg" alt="" class="img-responsive" />
+                                        </div>
+                                        <div class="slide">
+                                            <img src="images/slide-2.jpg" alt="" class="img-responsive" />
+                                        </div>
+                                        <div class="slide">
+                                            <img src="images/slide-3.jpg" alt="" class="img-responsive" />
+                                        </div>
+                                        <div class="slide">
+                                            <img src="images/slide-1.jpg" alt="" class="img-responsive" />
+                                        </div>
+                                        <div class="slide">
+                                            <video controls class="img-responsive">
+											<source src="videos/devstories.webm" type='video/webm;codecs="vp8, vorbis"'/>  						
+											</video>
+                                        </div>
+                                    </div>
+                                    </div>
+ 
+    <!-- Scripts Content -->
+    <!-- Bootstrap core JavaScript -->
+    <!-- jQuery library -->
+    <script type="text/javascript">
+        window.onload = function () {
+            $('.slider').slick({
+                autoplay: true,
+                autoplaySpeed: 3000,
+                arrows: true,
+                prevArrow: '<button type="button" class="slick-prev"></button>',
+                nextArrow: '<button type="button" class="slick-next"></button>',
+                centerMode: true,
+                slidesToShow: 1,
+                slidesToScroll: 1
+            });
+        };
+		function show(x){
+			$('#less'+x).show();
+			$('#slid'+x).show();
+			$('#more'+x).hide();
+		}
+		function less(x){
+			$('#more'+x).show();
+			$('#slid'+x).hide();
+			$('#less'+x).hide();
+		}
+
+    </script>
+    <script src="js/jquery.min.js"></script>
+
+    <!-- Popper JS -->
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script> -->
+
+    <!-- Latest compiled JavaScript -->
+    <script src="js/bootstrap.min.js"></script>
+    <script type="text/javascript" src="js/jquery-migrate-1.2.1.min.js"></script>
+    <script type="text/javascript" src="js/slick.min.js"></script>
+
+
+    <!-- <script src="javascript/custom-script.js"></script> -->
+    <!-- End Scripts Content -->
+
+    
+</body>
+</html>
