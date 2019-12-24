@@ -3,14 +3,14 @@ package com.abbott.adc.myfreestyle.servlets;
 import java.io.IOException;
 import java.rmi.ServerException;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.TreeMap;
 
-import javax.jcr.Node;
-import javax.jcr.PathNotFoundException;
-import javax.jcr.RepositoryException;
-import javax.jcr.ValueFormatException;
+import javax.jcr.query.Query;
 import javax.servlet.Servlet;
 import org.apache.felix.scr.annotations.Component;
 import org.apache.felix.scr.annotations.Properties;
@@ -21,6 +21,9 @@ import org.apache.sling.api.SlingHttpServletResponse;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ValueMap;
 import org.apache.sling.api.servlets.SlingAllMethodsServlet;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,87 +48,101 @@ public class DialogConversionServlet extends SlingAllMethodsServlet {
 			throws ServerException, IOException {
 
 		Resource resource = request.getResource();
-		LOG.info("$Path" + resource.getPath());
-		Resource Components = resource.getResourceResolver()
-				.getResource("/apps/adc/myfreestyle/components/content/email");
-		// LOG.info("$comp" + compfolder.getPath());
-		// Iterator<Resource> itrAllComponents = compfolder.listChildren();
-
+		Resource componentFolder = resource.getResourceResolver()
+				.getResource("/apps/adc/myfreestyle/components/content");
+		// Resource component =
+		 resource.getResourceResolver().getResource("/apps/adc/myfreestyle/components/content/zigzagtextimage");
+		 Comparator<Resource> compareByName = new Comparator<Resource>() {
+			@Override
+			public int compare(Resource o1, Resource o2) {
+				return o1.getName().compareTo(o2.getName());
+			}
+		};
 		final Map<String, Map<String, ArrayList<Resource>>> componentMapClassic = new TreeMap<String, Map<String, ArrayList<Resource>>>();
 		final Map<String, Map<String, ArrayList<Resource>>> componentMapTouch = new TreeMap<String, Map<String, ArrayList<Resource>>>();
-		try {
-			Iterator<Resource> itrCompNodes = Components.listChildren();
+		ArrayList<Resource> allComponents = getChildResources(componentFolder, componentFolder.getPath(),
+				DialogConversionConstants.CQ_COMPONENT);
+		for (Resource component : allComponents) {
+
+			Iterator<Resource> itrCompNodes = component.listChildren();
 			while (itrCompNodes.hasNext()) {
 				Resource compNodes = itrCompNodes.next();
-				if (compNodes.getName().equalsIgnoreCase("dialog")) {
-					Map<String, ArrayList<Resource>> panelMap = new TreeMap<String, ArrayList<Resource>>();
-					Resource classic = resource.getResourceResolver().getResource(compNodes.getPath() + "/items/items");
-					Iterator<Resource> tabs = classic.listChildren();
-					ArrayList<Resource> nodesInTab = new ArrayList<Resource>();
-					while (tabs.hasNext()) {
+				if (compNodes.getName().equalsIgnoreCase(DialogConversionConstants.DIALOG)) {
+					Map<String, ArrayList<Resource>> panelMapClassic = new TreeMap<String, ArrayList<Resource>>();
+					ArrayList<Resource> tabs = getTabResources(compNodes, compNodes.getPath(), DialogConversionConstants.CQ_PANEL, DialogConversionConstants.CLASSIC);
+					ArrayList<Resource> nodesInTab = null;
+					if (tabs != null) {
+						for (Resource tabPanel : tabs) {
 
-						Resource tabPanel = tabs.next();
-						Node cNode = tabPanel.adaptTo(Node.class);
-						String type;
-						type = cNode.getProperty("jcr:primaryType").getValue().getString();
-						String panelname = cNode.getName();
-						if (type.equalsIgnoreCase("cq:Panel")) {
-							Resource tabchild = tabPanel.getChild("items");
-							nodesInTab = populateTabMap(panelname, tabchild);
-							panelMap.put(panelname, nodesInTab);
+							ArrayList<Resource> childResources = getChildResources(tabPanel, tabPanel.getPath(),
+									DialogConversionConstants.UNSTRUCTURED);
+							nodesInTab = new ArrayList<Resource>();
+							for (Resource rs : childResources) {
+								String xtype = rs.getValueMap().get(DialogConversionConstants.XTYPE, DialogConversionConstants.DEFAULT);
+								if (xtype.equals(DialogConversionConstants.SELECTION)) {
+									xtype = rs.getValueMap().get(DialogConversionConstants.TYPE, String.class);
+								}
+								if (DialogConversionConstants.resourceType.containsKey(xtype)) {
+									nodesInTab.add(rs);
+								}
+
+							}
+							if (!nodesInTab.isEmpty()) {
+								Collections.sort(nodesInTab, compareByName);
+								panelMapClassic.put(tabPanel.getName(), nodesInTab);
+							}
 						}
+						if (!panelMapClassic.isEmpty())
+							componentMapClassic.put(component.getName(), panelMapClassic);
 					}
-					componentMapClassic.put(Components.getName(), panelMap);
 				}
 
-				if (compNodes.getName().equalsIgnoreCase("cq:dialog")) {
-					Map<String, ArrayList<Resource>> panelMap = new TreeMap<String, ArrayList<Resource>>();
-					ArrayList<Resource> nodesInTab = new ArrayList<Resource>();
-					Resource touch = resource.getResourceResolver()
-							.getResource(compNodes.getPath() + "/content/items/tabs/items");
-					Iterator<Resource> tabs = touch.listChildren();
-					String panelName = "";
-					while (tabs.hasNext()) {
-						Resource tabPanel = tabs.next();
+				if (compNodes.getName().equalsIgnoreCase(DialogConversionConstants.CQ_DIALOG)) {
+					Map<String, ArrayList<Resource>> panelMap = new TreeMap<String, ArrayList<Resource>>();					
+					ArrayList<Resource> nodesInTab = null;
+					ArrayList<Resource> tabs = getTabResources(compNodes, compNodes.getPath(), DialogConversionConstants.UNSTRUCTURED,
+							DialogConversionConstants.CORAL);
+					if (tabs != null) {
+						for (Resource tabPanel : tabs) {
+							ArrayList<Resource> childResources = getChildResources(tabPanel, tabPanel.getPath(),
+									DialogConversionConstants.UNSTRUCTURED);
+							nodesInTab = new ArrayList<Resource>();
+							for (Resource rs : childResources) {
+								String resourceTypeCoral = rs.getResourceType();
+								if (DialogConversionConstants.resourceType.containsValue(resourceTypeCoral)) {
+									nodesInTab.add(rs);
+								}
 
-						if (tabPanel.getResourceType()
-								.equalsIgnoreCase("granite/ui/components/coral/foundation/fixedcolumns")) {
-							panelName = tabPanel.getName();
-							//LOG.info("nodesintabbefore"+getTabChildeNodes(tabPanel.getPath(), tabPanel).toString());
-							//Resource tabchild = tabPanel.getChild("items/columns/items");
-							nodesInTab = getTabChildNodes(tabPanel.getPath(), tabPanel);
-							LOG.info("nodesintabaftercall"+panelName+nodesInTab.toString());
-							panelMap.put(panelName, nodesInTab);
+							}
+							if (!nodesInTab.isEmpty()) {
+								Collections.sort(nodesInTab, compareByName);
+								panelMap.put(tabPanel.getName(), nodesInTab);
+							}
 						}
+						if (!panelMap.isEmpty())
+							componentMapTouch.put(component.getName(), panelMap);
 					}
-					componentMapTouch.put(Components.getName(), panelMap);
-				}
 
-				// }
+				}
 			}
-		} catch (ValueFormatException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IllegalStateException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (PathNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (RepositoryException e) {
+	}
+		try {
+			JSONArray componentList=compareMaps(componentMapClassic, componentMapTouch);
+			LOG.info("JSON ARRAY"+componentList);
+		} catch (JSONException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		compareMaps(componentMapClassic, componentMapTouch);
 		for (Map.Entry<String, Map<String, ArrayList<Resource>>> letterEntry : componentMapClassic.entrySet()) {
 			String letter = letterEntry.getKey();
-			for (Map.Entry<String, ArrayList<Resource>> nameEntry : letterEntry.getValue().entrySet()) {
-				String name = nameEntry.getKey();
-				ArrayList<Resource> nodes = nameEntry.getValue();
-				for (Resource rs : nodes) {
-					// LOG.info("MAP"+rs.getPath());
+			if (letterEntry.getValue() != null) {
+				for (Map.Entry<String, ArrayList<Resource>> nameEntry : letterEntry.getValue().entrySet()) {
+					String name = nameEntry.getKey();
+					ArrayList<Resource> nodes = nameEntry.getValue();
+					for (Resource rs : nodes) {
+						// LOG.debug("MAP"+rs.getPath());
+					}
 				}
-				// ...
 			}
 		}
 
@@ -135,161 +152,237 @@ public class DialogConversionServlet extends SlingAllMethodsServlet {
 				String name = nameEntry.getKey();
 				ArrayList<Resource> nodes = nameEntry.getValue();
 				for (Resource rs : nodes) {
-					 LOG.info("MAPTOUCH"+rs.getPath());
+					// LOG.debug("MAPTOUCH" + rs.getPath());
 				}
-				// ...
+
 			}
 		}
 
 	}
 
-	private String getJcrPrimary(Resource rs) {
-		Node cNode = rs.adaptTo(Node.class);
-		String type = "";
-		try {
-			type = cNode.getProperty("jcr:primaryType").getValue().getString();
-		} catch (ValueFormatException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IllegalStateException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (PathNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (RepositoryException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+	private ArrayList<Resource> getChildResources(Resource rs, String rootPath, String nodeType) {
+		String selectQuery = "SELECT * FROM [" + nodeType + "] AS s WHERE ISDESCENDANTNODE(s,'" + rootPath + "')";
+		Iterator<Resource> result = rs.getResourceResolver().findResources(selectQuery, Query.JCR_SQL2);
+		ArrayList<Resource> childResources = new ArrayList<Resource>();
+		while (result.hasNext()) {
+			Resource node = result.next();
+			if(!node.getPath().contains("rtePlugins")&&!node.getPath().contains("htmlRules"))
+			childResources.add(node);
 		}
-		return type;
+		return childResources;
+
 	}
 
-	private ArrayList<Resource> populateTabMap(String panelName, Resource tabchild) {
+	private ArrayList<Resource> getTabResources(Resource rs, String rootPath, String nodeType, String dialogType) {
+		String selectQuery = "SELECT * FROM [" + nodeType + "] AS s WHERE ISDESCENDANTNODE(s,'" + rootPath + "')";
+		Iterator<Resource> result = rs.getResourceResolver().findResources(selectQuery, Query.JCR_SQL2);
+		ArrayList<Resource> childResources = null;
+		if (dialogType.equalsIgnoreCase(DialogConversionConstants.CORAL)) {
+			childResources = new ArrayList<Resource>();
+			while (result.hasNext()) {
+				Resource node = result.next();
+				String resourceTypeCoral = node.getResourceType();
+				if (resourceTypeCoral.equalsIgnoreCase(DialogConversionConstants.FIXED_COLUMNS)) {
 
-		// Map<String, ArrayList<Resource>> panelMap = new TreeMap<String,
-		// ArrayList<Resource>>();
+					childResources.add(node);
 
-		ArrayList<Resource> nodesInTab = new ArrayList<Resource>();
+				}
+			}
 
-		// LOG.info("$tabchild" + tabchild.getPath());
-
-		Iterator<Resource> itrTabChild = tabchild.listChildren();
-
-		while (itrTabChild.hasNext()) {
-			Resource node = itrTabChild.next();
-			nodesInTab.add(node);
-			/*
-			 * ValueMap vp1=node.getValueMap(); String xtype=vp1.get("xtype", String.class);
-			 * String name=vp1.get("name", String.class); LOG.info("$xtypename"+xtype+name);
-			 * myMap.put(name, xtype);
-			 */
 		}
 
-		return nodesInTab;
+		if (dialogType.equalsIgnoreCase(DialogConversionConstants.CLASSIC)) {
+			childResources = new ArrayList<Resource>();
+			while (result.hasNext()) {
+				Resource node = result.next();
+				childResources.add(node);
+			}
+		}
+		return childResources;
 	}
-	 public ArrayList<Resource> getTabChildNodes(String path, Resource tabchild){
-		 ArrayList<Resource> nodesInTabTouch = new ArrayList<Resource>();
-		 LOG.info("path"+path);
-		 if(!path.equals("")){
-           Resource startResource = tabchild.getResourceResolver().getResource(path);
-           
-           
-           if(startResource.hasChildren())
-           {
-           Iterator<Resource> itrChild = startResource.listChildren();
-            while(itrChild.hasNext()){
-                 Resource childNode = itrChild.next();
-                 
-                 String resourceTypeCoral = childNode.getResourceType();
-                	LOG.info("resourceTypeCoral"+DialogConversionConstants.resourceType.containsValue(resourceTypeCoral));	 
-                 if(DialogConversionConstants.resourceType.containsValue(resourceTypeCoral))							
-					{
-                	 LOG.info("in if"+childNode.getPath());
-                	 Iterator<Resource> itrTabChild = childNode.getParent().listChildren();
-                	 LOG.info("in if"+childNode.getPath());
-                	 while (itrTabChild.hasNext()) {
-                		
-             			Resource node = itrTabChild.next();
-             			 LOG.info("in while"+node.getPath());
-             			nodesInTabTouch.add(node);
-             			/*
-             			 * ValueMap vp1=node.getValueMap(); String xtype=vp1.get("xtype", String.class);
-             			 * String name=vp1.get("name", String.class); LOG.info("$xtypename"+xtype+name);
-             			 * myMap.put(name, xtype);
-             			 */
-             			LOG.info("nodesInTab"+nodesInTabTouch.toString());
-             		}
-                	 LOG.info("nodesInTabafterwhile"+nodesInTabTouch.toString());
-                	 LOG.info("returning in if");
-                	 return nodesInTabTouch;
-                   }
-                   else{
-                	   LOG.info("IN else");
-                	   getTabChildNodes(childNode.getPath(),tabchild);
-                       }
-            } 
-            }           
-           }
-		 LOG.info("returningmethodend");
-		 return nodesInTabTouch;
-		}
-			   
-			   
-			   
 
-	void compareMaps(Map<String, Map<String, ArrayList<Resource>>> componentMapClassic,
-			Map<String, Map<String, ArrayList<Resource>>> componentMapTouch) {
-		for (Map.Entry<String, Map<String, ArrayList<Resource>>> letterEntry : componentMapClassic.entrySet()) {
-			String letter = letterEntry.getKey();
-			Map<String, ArrayList<Resource>> tabMapTouch = componentMapTouch.get(letter);
-			if (tabMapTouch == null) {
-				LOG.info("No touch UI dialogue for this component");
+	JSONArray compareMaps(Map<String, Map<String, ArrayList<Resource>>> componentMapClassic,
+			Map<String, Map<String, ArrayList<Resource>>> componentMapCoral) throws JSONException {
+		JSONArray componentList = new JSONArray();
+		JSONObject componentObj=null;
+		JSONObject dialog =null;
+		for (Map.Entry<String, Map<String, ArrayList<Resource>>> entry : componentMapClassic.entrySet()) {
+			String component = entry.getKey();
+			Map<String, ArrayList<Resource>> dialogMapCoral = componentMapCoral.get(component);
+			componentObj=new JSONObject();
+			dialog =new JSONObject();
+			JSONArray tabList =null;
+			
+			if (dialogMapCoral == null) {
+				LOG.info("No Coral dialogue for this component" + component);
+				dialog.put("No coral Dialog", component);
 			} else {
-
-				for (Map.Entry<String, ArrayList<Resource>> nameEntry : letterEntry.getValue().entrySet()) {
-					String name = nameEntry.getKey();
-					ArrayList<Resource> NodeList = tabMapTouch.get(nameEntry.getKey());
-					if (NodeList == null) {
-						LOG.info("No corresponding tab in touch Ui");
+				tabList =new JSONArray();
+				JSONObject tab =null;
+				for (Map.Entry<String, ArrayList<Resource>> tabMapClassic : entry.getValue().entrySet()) {
+					tab = new JSONObject();
+					String name = tabMapClassic.getKey();
+					ArrayList<Resource> nodeListCoral = dialogMapCoral.get(tabMapClassic.getKey());
+					if (nodeListCoral == null) {
+						LOG.info("No corresponding tab in touch Ui" + name);
+						tab.put(name, "no tab in coral"+name);
 					} else {
-						ArrayList<Resource> nodes = nameEntry.getValue();
-						for (Resource rs : nodes) {
-							int count = 0;
-							for (Resource rstouch : NodeList) {
-								if (rstouch.getName().equalsIgnoreCase(rs.getName())) {
-									count = 1;
-									ValueMap vp1 = rs.getValueMap();
-									ValueMap vptouch = rstouch.getValueMap();
-									String xtype = vp1.get("xtype", String.class);
-									if (xtype.equals("selection")) {
-										xtype = vp1.get("type", String.class);
-									}
-									String nameClassic = vp1.get("name", String.class);
-									String resourceTypeCoral = vptouch.get("sling:resourceType", String.class);
-									String coralName = vptouch.get("name", String.class);
-									if (!nameClassic.equals(coralName)) {
-										LOG.info("Name doent match with classic");
-									}
-									if (!xtype.equals("mtmulticompositefield")) {
-										if (DialogConversionConstants.resourceType.get(xtype)
-												.equals(resourceTypeCoral)) {
-											LOG.info(resourceTypeCoral, "ResourceType doent match with classic");
-										}
+						ArrayList<Resource> nodesListClassic = tabMapClassic.getValue();
+						JSONArray nodeList=compareNodes(nodesListClassic,nodeListCoral);
+						if(nodeList!=null &&nodeList.length()>0)
+						tab.put(name, nodeList);
+					}
+					if(tab!=null &&tab.length()>0)
+					tabList.put(tab);
+				}
+				if(tabList!=null &&tabList.length()>0)
+				dialog.put(DialogConversionConstants.DIALOG, tabList);
 
-									}
+			}
+			if(dialog!=null &&dialog.length()>0)			
+			componentObj.put(component, dialog);
+			if(componentObj!=null &&componentObj.length()>0)
+			componentList.put(componentObj);
 
-								}
-							}
-							if (count == 0) {
-								LOG.info("Clasic node is not present in touch");
-							}
+		}
+		return componentList;
+	}
+
+	JSONArray compareNodes(ArrayList<Resource> nodeListClassic, ArrayList<Resource> nodeListCoral)
+			throws JSONException {
+		JSONArray nodeList = new JSONArray();
+		JSONObject node = null;
+		for (Resource rsClassic : nodeListClassic) {
+			node = new JSONObject();
+
+			int count = 0;
+
+			for (Resource rsCoral : nodeListCoral) {
+
+				if (rsCoral.getName().equalsIgnoreCase(rsClassic.getName())) {
+					node = new JSONObject();
+					count = 1;
+
+					String xtype = getPropertyValue(rsClassic, DialogConversionConstants.XTYPE);
+					LOG.info("xtype" + xtype + "$$" + rsClassic.getPath());
+					if (xtype.equals(DialogConversionConstants.MULTIFIELD)) {
+
+						String multiNodeName = rsCoral.getChild(DialogConversionConstants.FIELD_NODE).getValueMap()
+								.get(DialogConversionConstants.NAME, DialogConversionConstants.DEFAULT);
+						LOG.info("multiNodeNamecoral"+multiNodeName+"classicname"+getPropertyValue(rsClassic, DialogConversionConstants.NAME));
+						if (!getPropertyValue(rsClassic, DialogConversionConstants.NAME).equals(multiNodeName)) {
+							LOG.info("Name doent match with classic" + rsCoral.getPath());
+							node.put("name mismatch", rsCoral.getPath());
 						}
 					}
-				}
+					else if (!xtype.equals(DialogConversionConstants.MULTIFIELD)) {
+						if ((!getPropertyValue(rsClassic, DialogConversionConstants.NAME).startsWith("./")) && rsClassic
+								.getParent().getName().equalsIgnoreCase(DialogConversionConstants.FIELD_CONFIG_NODE)) {
+							if (!getPropertyValue(rsClassic, DialogConversionConstants.NAME).equals(
+									getPropertyValue(rsCoral, DialogConversionConstants.NAME).replace("./", "")))								
+							node.put("name mismatch", rsCoral.getPath());
+						}
 
+						else if (!getPropertyValue(rsClassic, DialogConversionConstants.NAME)
+								.equals(getPropertyValue(rsCoral, DialogConversionConstants.NAME))) {
+
+							LOG.info("Name doent match with classic" + rsCoral.getPath());
+							node.put("name mismatch", rsCoral.getPath());
+						}
+
+					} 
+					if (xtype.equals(DialogConversionConstants.CHECKBOX)) {
+						if ((!getPropertyValue(rsClassic, DialogConversionConstants.FIELD_LABEL)
+								.equals(getPropertyValue(rsCoral, DialogConversionConstants.TEXT)))) {
+							LOG.info("text for checkbox doentmatch with classic" + rsClassic.getPath());
+							node.put("text mismatch", rsCoral.getPath());
+
+						}
+						if (!getPropertyValue(rsCoral, DialogConversionConstants.VALUE)
+								.equals(DialogConversionConstants.TRUE)) {
+							node.put("value mismatch", rsCoral.getPath());
+						}
+
+					} 
+					if (xtype.equals(DialogConversionConstants.HTML5_IMAGE)) {
+						LOG.info("imageseetha");
+						if (!getPropertyValue(rsClassic, DialogConversionConstants.FILENAME_PARAMETER)
+								.equals(getPropertyValue(rsCoral, DialogConversionConstants.FILENAME_PARAMETER))) {
+							LOG.info("file name parameter doesnt match with classic" + rsClassic.getPath());
+							node.put("fileNameParameter mismatch", rsCoral.getPath());
+						}
+						if (!getPropertyValue(rsClassic, DialogConversionConstants.FILEREF_PARAMETER)
+								.equals(getPropertyValue(rsCoral, DialogConversionConstants.FILEREF_PARAMETER))) {
+							LOG.info("file ref parameter doesnt match with classic" + rsClassic.getPath());
+							node.put("fileReferenceParameter mismatch", rsCoral.getPath());
+						}
+						if (!getPropertyValue(rsCoral, DialogConversionConstants.MIME_TYPES)
+								.equals(DialogConversionConstants.IMAGE)) {
+							node.put("mimeTypes is not image", rsCoral.getPath());
+						}
+						if (!getPropertyValue(rsCoral, DialogConversionConstants.ALLOW_UPLOAD)
+								.equals(DialogConversionConstants.FALSE)) {
+							node.put("allowUpload is not false", rsCoral.getPath());
+						}	
+					}
+					
+					if (!getPropertyValue(rsCoral, DialogConversionConstants.PRIMARY_TYPE)
+							.equals(DialogConversionConstants.UNSTRUCTURED)) {
+						LOG.info("Wrong Primary Type" + rsClassic.getPath());
+						node.put("Wrong Primary Type", rsCoral.getPath());
+					}
+					if (!DialogConversionConstants.resourceType
+							.get(getPropertyValue(rsClassic, DialogConversionConstants.XTYPE))
+							.equals(getPropertyValue(rsCoral, DialogConversionConstants.SLING_RESOURCETYPE))) {
+						LOG.info("ResourceType doent match with classic" + rsClassic.getPath());
+						node.put("resourceType mismatch", rsCoral.getPath());
+					}
+
+					if ((!getPropertyValue(rsClassic, DialogConversionConstants.FIELD_LABEL)
+							.equals(getPropertyValue(rsCoral, DialogConversionConstants.FIELD_LABEL)))
+							&& !xtype.equals(DialogConversionConstants.CHECKBOX)) {
+						LOG.info("Field Label doentmatch with classic" + rsClassic.getPath());
+						node.put("fieldLabel mismatch", rsCoral.getPath());
+
+					}
+					if (!getPropertyValue(rsClassic, DialogConversionConstants.DEFAULT_VALUE)
+							.equals(getPropertyValue(rsCoral, DialogConversionConstants.VALUE))) {
+						LOG.info("Default Value doent match with classic" + rsClassic.getPath());
+						node.put("Default Value mismatch", rsCoral.getPath());
+					}
+
+					// }
+					if (node.length() != 0) {
+						nodeList.put(node);
+					}
+
+				}
+			}
+
+			if (count == 0) {
+				node = new JSONObject();
+				LOG.info("Clasic node is not present in touch" + rsClassic.getPath());
+				node.put("Node mismatch", rsClassic.getPath());
+				nodeList.put(node);
 			}
 
 		}
+		return nodeList;
+
 	}
+
+
+
+	private String getPropertyValue(Resource rs, String prop) {
+		String property = "";
+		ValueMap vp = rs.getValueMap();
+		property = vp.get(prop, DialogConversionConstants.DEFAULT);
+		if (property.equals(DialogConversionConstants.SELECTION)) {
+			property = vp.get(DialogConversionConstants.TYPE, DialogConversionConstants.DEFAULT);
+		}
+		LOG.info("$$"+rs.getName()+prop+"$"+property);
+		return property;
+	}
+	
 
 }
